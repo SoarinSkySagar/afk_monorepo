@@ -14,10 +14,34 @@ contract PumpLaunchpad {
         address tokenType;
     }
 
+    struct TokenLaunch {
+        address owner;
+        address tokenAddress;
+        uint256 totalSupply;
+        uint256 availableSupply;
+        uint8 bondingCurveType;  // 0 for Linear, add more as needed
+        uint256 createdAt;
+        Token quoteToken;
+        uint256 initialKeyPrice;
+        uint256 price;
+        uint256 liquidityRaised;
+        uint256 tokenHolded;
+        bool isLiquidityLaunch;
+        uint256 slope;
+        uint256 thresholdLiquidity;
+        uint256 initialPoolSupply;
+    }
+
     address public quoteToken;
     mapping(address => Token) public tokenCreated;
+    mapping(address => TokenLaunch) public launchedCoins;
     uint256 public totalTokens;
+    uint256 public totalLaunch;
     mapping(uint256 => Token) public arrayCoins;
+    mapping(uint256 => TokenLaunch) public arrayLaunchedCoins;
+    uint256 public thresholdLiquidity;
+    Token public defaultToken;
+    uint256 private constant LIQUIDITY_RATIO = 1000;
 
     event CreateToken(
         address indexed caller,
@@ -26,6 +50,17 @@ contract PumpLaunchpad {
         string name,
         uint256 initialSupply,
         uint256 totalSupply
+    );
+
+    event CreateLaunch(
+        address indexed caller,
+        address indexed tokenAddress,
+        uint256 amount,
+        uint256 price,
+        uint256 totalSupply,
+        uint256 slope,
+        uint256 thresholdLiquidity,
+        address quoteTokenAddress
     );
 
     constructor() {
@@ -53,6 +88,23 @@ contract PumpLaunchpad {
             contractAddressSalt
         );
 
+        return tokenAddress;
+    }
+
+    function create_and_launch_token(
+        string memory symbol,
+        string memory name,
+        uint256 initialSupply
+    ) public returns (address) {
+        address contractAddress = address(this);
+        address caller = msg.sender;
+        address tokenAddress = create_token(
+            contractAddress,
+            symbol,
+            name,
+            initialSupply
+        );
+        _launch_token(tokenAddress, caller);
         return tokenAddress;
     }
 
